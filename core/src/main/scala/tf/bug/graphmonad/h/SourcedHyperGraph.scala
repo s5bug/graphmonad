@@ -1,7 +1,6 @@
 package tf.bug.graphmonad.h
 
 import cats.Monad
-import cats.implicits._
 
 case class SourcedHyperGraph[+A](
   values: Vector[A],
