@@ -6,7 +6,12 @@ import shapeless._
 case class HyperGraph[A, L](
   vertices: Set[A],
   edges: RankedSet[A, L]
-)
+) {
+  
+  def mapEdges[M](f: ArityPreservingFunction[L, M]): HyperGraph[A, M] =
+    HyperGraph(vertices, edges.mapLabel(f))
+
+}
 
 case class HyperEdge[A, L, R <: Nat](
   label: L,
@@ -37,12 +42,16 @@ object Arity {
   }
 }
 
+trait ArityPreservingFunction[L, M] {
+
+  def apply[A, R <: Nat](r: R, a: HyperEdge[A, L, R]): HyperEdge[A, M, R]
+
+}
+
 case class RankedSet[A, L](values: Set[Arity[HyperEdge[A, L, *]]]) {
-  def mapLabel[M](f: L => M): RankedSet[A, M] = RankedSet(
+  def mapLabel[M](f: ArityPreservingFunction[L, M]): RankedSet[A, M] = RankedSet(
     values.map { arity =>
-      val first = arity.first
-      val second = arity.second
-      Arity(first.mapLabel(f), second)
+      Arity(f(arity.second, arity.first), arity.second)
     }
   )
 }
@@ -51,7 +60,7 @@ case class H[A, L](
   t: RankedSet[HyperGraph[A, L], L]
 ) {
 
-
+  def map[M](f: ArityPreservingFunction[L, M]): H[A, M] = H(t.mapLabel(f))
 
 }
 
