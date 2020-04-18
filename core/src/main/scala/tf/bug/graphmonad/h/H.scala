@@ -5,11 +5,17 @@ import shapeless._
 
 case class Label[L, R <: Nat](value: L, arity: R)
 
+trait HyperEdgeLike[L, R <: Nat] {
+  val label: Label[L, R]
+  val vertices: Sized[Vector[L], R]
+  val arity: R
+}
+
 case class HyperEdge[L, R <: Nat](
   label: Label[L, R],
   vertices: Sized[Vector[L], R],
   arity: R
-)
+) extends HyperEdgeLike[L, R]
 
 trait Arity[F[_]] {
   type R <: Nat
@@ -18,17 +24,31 @@ trait Arity[F[_]] {
   val second: R
 }
 
+trait ArityPreservingFunction[F[_, _ <: Nat], L, M] {
+  def apply[R <: Nat](a: F[L, R]): F[M, R]
+}
+
 case class RankedSet[F[_ <: Nat]](values: Set[Arity[F]])
 
 case class HyperGraph[L](
   vertices: Set[L],
-  edges: RankedSet[HyperEdge[L, *]]
+  edges: RankedSet[HyperEdgeLike[L, *]]
 )
 
-object H extends Monad[HyperGraph] {
-  override def flatMap[A, B](fa: HyperGraph[A])(f: A => HyperGraph[B]): HyperGraph[B] = ???
+case class SourcedHyperGraph[L, R <: Nat](
+  label: Label[L, R],
+  graph: HyperGraph[L],
+  vertices: Sized[Vector[L], R],
+  arity: R
+) extends HyperEdgeLike[L, R]
 
-  override def tailRecM[A, B](a: A)(f: A => HyperGraph[Either[A, B]]): HyperGraph[B] = ???
+object H {
 
-  override def pure[A](x: A): HyperGraph[A] = ???
+  def pure[L, R <: Nat](l: Label[L, R], arity: R): SourcedHyperGraph[L, R] = SourcedHyperGraph(
+    l,
+
+  )
+
+  def map[L, M](fl: HyperGraph[L])(f: ArityPreservingFunction[Label, L, M]): HyperGraph[M] = ???
+
 }
