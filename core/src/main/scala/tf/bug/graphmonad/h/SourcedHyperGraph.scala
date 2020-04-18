@@ -3,10 +3,10 @@ package tf.bug.graphmonad.h
 import cats.Monad
 
 case class SourcedHyperGraph[+A](
-  values: Vector[A],
-  edges: Vector[SourcedHyperGraph[A]],
+  values: Set[A],
+  edges: Set[SourcedHyperGraph[A]],
   head: A,
-  tail: Vector[A]
+  tail: Set[A]
 )
 
 object SourcedHyperGraph {
@@ -15,10 +15,10 @@ object SourcedHyperGraph {
 
     override def pure[A](x: A): SourcedHyperGraph[A] =
       SourcedHyperGraph(
-        Vector(x),
-        Vector(),
+        Set(x),
+        Set(),
         x,
-        Vector()
+        Set()
       )
 
     override def flatMap[A, B](fa: SourcedHyperGraph[A])(f: A => SourcedHyperGraph[B]): SourcedHyperGraph[B] =
@@ -40,7 +40,11 @@ object SourcedHyperGraph {
         ffa.tail.flatMap(_.tail)
       )
 
-    override def tailRecM[A, B](a: A)(f: A => SourcedHyperGraph[Either[A, B]]): SourcedHyperGraph[B] = ???
+    // FIXME Not stack safe!
+    override def tailRecM[A, B](a: A)(f: A => SourcedHyperGraph[Either[A, B]]): SourcedHyperGraph[B] = flatMap(f(a)) {
+      case Left(a)  => tailRecM(a)(f)
+      case Right(b) => pure(b)
+    }
 
   }
 
