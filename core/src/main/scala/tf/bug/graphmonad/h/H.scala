@@ -3,69 +3,32 @@ package tf.bug.graphmonad.h
 import cats.{Applicative, Functor, Monad}
 import shapeless._
 
-case class HyperGraph[A, L](
-  vertices: Set[A],
-  edges: RankedSet[A, L]
-) {
-  
-  def mapEdges[M](f: ArityPreservingFunction[L, M]): HyperGraph[A, M] =
-    HyperGraph(vertices, edges.mapLabel(f))
+case class Label[L, R <: Nat](value: L, arity: R)
 
-}
-
-case class HyperEdge[A, L, R <: Nat](
-  label: L,
-  arity: R,
-  incidence: Sized[Vector[A], R]
-) {
-  def mapLabel[M](f: L => M): HyperEdge[A, M, R] = HyperEdge(f(label), arity, incidence)
-}
+case class HyperEdge[L, R <: Nat](
+  label: Label[L, R],
+  vertices: Sized[Vector[L], R],
+  arity: R
+)
 
 trait Arity[F[_]] {
   type R <: Nat
 
   val first: F[R]
   val second: R
-
-  override def equals(o: Any): Boolean = o match {
-    case oa: Arity[F] =>
-      second == oa.second && first == oa.first
-    case _ => false
-  }
 }
 
-object Arity {
-  def apply[F[_], A <: Nat](f: F[A], s: A): Arity[F] = new Arity[F] {
-    override type R = A
-    override val first: F[A] = f
-    override val second: A = s
-  }
-}
+case class RankedSet[F[_ <: Nat]](values: Set[Arity[F]])
 
-trait ArityPreservingFunction[L, M] {
+case class HyperGraph[L](
+  vertices: Set[L],
+  edges: RankedSet[HyperEdge[L, *]]
+)
 
-  def apply[A, R <: Nat](r: R, a: HyperEdge[A, L, R]): HyperEdge[A, M, R]
+object H extends Monad[HyperGraph] {
+  override def flatMap[A, B](fa: HyperGraph[A])(f: A => HyperGraph[B]): HyperGraph[B] = ???
 
-}
+  override def tailRecM[A, B](a: A)(f: A => HyperGraph[Either[A, B]]): HyperGraph[B] = ???
 
-case class RankedSet[A, L](values: Set[Arity[HyperEdge[A, L, *]]]) {
-  def mapLabel[M](f: ArityPreservingFunction[L, M]): RankedSet[A, M] = RankedSet(
-    values.map { arity =>
-      Arity(f(arity.second, arity.first), arity.second)
-    }
-  )
-}
-
-case class H[A, L](
-  t: RankedSet[HyperGraph[A, L], L]
-) {
-
-  def map[M](f: ArityPreservingFunction[L, M]): H[A, M] = H(t.mapLabel(f))
-
-}
-
-object H {
-
-
-
+  override def pure[A](x: A): HyperGraph[A] = ???
 }
